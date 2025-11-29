@@ -13,15 +13,14 @@
  */
 #define BARPADDING_PATCH 0
 
-/* This patch adds proper support for Right-To-Left languages, such as Hebrew,
+/* This patch adds proper support for Right-To-Left (RTL) languages, such as Hebrew,
  * Arabic, and Farsi.
- *
- * This is an edited version of this patch by https://github.com/nimaaskarian to
- * render the prompt as bidi as well as the options
  *
  * Texts combining both RTL and LTR languages are displayed correctly. This is
  * achieved using the GNU FriBiDi library, which is an additional dependency for
  * this patch.
+ *
+ * You need to uncomment the corresponding line in config.mk to use the fribidi library.
  * https://tools.suckless.org/dmenu/patches/bidi/
  */
 #define BIDI_PATCH 0
@@ -237,15 +236,6 @@
  *
  * Note that the pango patch is incompatible with the scroll patch and will result in
  * compilation errors if both are enabled.
- *
- * Note that the pango patch does not protect against the BadLength error from Xft
- * when color glyphs are used, which means that dmenu will crash if color emoji is used.
- *
- * If you need color emoji then you may want to install this patched library from the AUR:
- * https://aur.archlinux.org/packages/libxft-bgra/
- *
- * A long term fix for the libXft library is pending approval of this pull request:
- * https://gitlab.freedesktop.org/xorg/lib/libxft/-/merge_requests/1
  *
  * Known issue: not compatible with the scroll patch
  *
