@@ -2222,12 +2222,16 @@ main(int argc, char *argv[])
 		#endif // CASEINSENSITIVE_PATCH
 		#if VI_MODE_PATCH
 		} else if (!strcmp(argv[i], "-vi")) {
-      #if VI_MODE_RUNTIME_STARTING_MODE_PATCH
-      int next_arg_num = atoi(argv[++i]);
-      if (next_arg_num) {
-        start_mode = vi_mode;
-      }
-      #endif VI_MODE_RUNTIME_STARTING_MODE_PATCH
+			if (i + 1 < argc) {
+				if (!strcmp(argv[i+1], "0")) {
+					start_mode = 0;
+					i++;
+				} else if (!strcmp(argv[i+1], "1")) {
+					start_mode = 1;
+					i++;
+				}
+			}
+			vi_mode = 1;
 			using_vi_mode = start_mode;
 			global_esc.ksym = XK_Escape;
 			global_esc.state = 0;
