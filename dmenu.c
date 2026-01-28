@@ -135,9 +135,6 @@ static int reject_no_match = 0;
 #endif // REJECTNOMATCH_PATCH
 static size_t cursor;
 static struct item *items = NULL;
-#if NAVHISTORY_PATCH
-static struct item *backup_items;
-#endif // NAVHISTORY_PATCH
 static struct item *matches, *matchend;
 static struct item *prev, *curr, *next, *sel;
 static int mon = -1, screen;
@@ -283,6 +280,13 @@ cleanup(void)
 	#endif // INPUTMETHOD_PATCH
 	for (i = 0; i < SchemeLast; i++)
 		drw_scm_free(drw, scheme[i], 2);
+
+	#if NAVHISTORY_PATCH
+	savehistory();
+	cleanhistory();
+	restorebackupitems();
+	#endif // NAVHISTORY_PATCH
+
 	for (i = 0; items && items[i].text; ++i) {
 		#if SEPARATOR_PATCH
 		free(separator_reverse ? items[i].text_output : items[i].text);
@@ -291,6 +295,7 @@ cleanup(void)
 		#endif // SEPARATOR_PATCH
 	}
 	free(items);
+
 	#if HIGHPRIORITY_PATCH
 	for (i = 0; i < hplength; ++i)
 		free(hpitems[i]);
@@ -1050,9 +1055,6 @@ keypress(XKeyEvent *ev)
 {
 	char buf[64];
 	int len;
-  #if NAVHISTORY_PATCH
-  int i;
-  #endif // NAVHISTORY_PATCH
 	#if PREFIXCOMPLETION_PATCH
 	struct item * item;
 	#endif // PREFIXCOMPLETION_PATCH
@@ -1112,7 +1114,7 @@ keypress(XKeyEvent *ev)
 		case XK_p: expect("ctrl-p", ev); ksym = XK_Up;   break;
 		case XK_o: expect("ctrl-o", ev); break;
 		case XK_q: expect("ctrl-q", ev); break;
-    #if !NAVHISTORY_PATCH
+		#if !NAVHISTORY_PATCH
 		case XK_r: expect("ctrl-r", ev); break;
 		#endif // NAVHISTORY_PATCH
 		case XK_s: expect("ctrl-s", ev); break;
@@ -1169,26 +1171,10 @@ keypress(XKeyEvent *ev)
 		#endif // FZFEXPECT_PATCH | CTRL_V_TO_PASTE_PATCH
 		#if NAVHISTORY_PATCH
 		case XK_r:
-			if (histfile) {
-				if (!backup_items) {
-					backup_items = items;
-					items = calloc(histsz + 1, sizeof(struct item));
-					if (!items) {
-						die("cannot allocate memory");
-					}
-
-					for (i = 0; i < histsz; i++) {
-						items[i].text = history[i];
-					}
-				} else {
-					free(items);
-					items = backup_items;
-					backup_items = NULL;
-				}
-			}
+			togglehistoryitems();
 			match();
 			goto draw;
-    #endif // NAVHISTORY_PATCH
+		#endif // NAVHISTORY_PATCH
 		#if FZFEXPECT_PATCH
 		case XK_y: expect("ctrl-y", ev); /* paste selection */
 		#else
@@ -1427,11 +1413,14 @@ insert:
 		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
 		#endif // PIPEOUT_PATCH | PRINTINPUTTEXT_PATCH | PRINTINDEX_PATCH
 		#endif // MULTI_SELECTION_PATCH
+		#if NAVHISTORY_PATCH && !MULTI_SELECTION_PATCH
+		if (ev->state & ShiftMask || !sel) {
+			addhistory(text);
+		} else {
+			addhistoryitem(sel);
+		}
+		#endif // NAVHISTORY_PATCH
 		if (!(ev->state & ControlMask)) {
-			#if NAVHISTORY_PATCH
-			savehistory((sel && !(ev->state & ShiftMask))
-				    ? sel->text : text);
-			#endif // NAVHISTORY_PATCH
 			#if MULTI_SELECTION_PATCH
 			printsel(ev->state);
 			#endif // MULTI_SELECTION_PATCH

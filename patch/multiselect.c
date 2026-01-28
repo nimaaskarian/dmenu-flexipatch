@@ -10,7 +10,7 @@ issel(size_t id)
 static void
 printsel(unsigned int state)
 {
-	for (int i = 0;i < selidsize;i++)
+	for (int i = 0;i < selidsize;i++) {
 		if (selid[i] != -1 && (!sel || sel->id != selid[i])) {
 			#if PRINTINDEX_PATCH
 			if (print_index)
@@ -26,7 +26,12 @@ printsel(unsigned int state)
 			#else
 			puts(items[selid[i]].text);
 			#endif // PRINTINDEX_PATCH | SEPARATOR_PATCH
+			#if NAVHISTORY_PATCH
+			addhistoryitem(&items[selid[i]]);
+			#endif // NAVHISTORY_PATCH
 		}
+	}
+
 	if (sel && !(state & ShiftMask)) {
 		#if PRINTINDEX_PATCH
 		if (print_index)
@@ -42,9 +47,15 @@ printsel(unsigned int state)
 		#else
 		puts(sel->text);
 		#endif // PRINTINDEX_PATCH | SEPARATOR_PATCH
-	} else
+		#if NAVHISTORY_PATCH
+		addhistoryitem(sel);
+		#endif // NAVHISTORY_PATCH
+	} else {
 		puts(text);
-
+		#if NAVHISTORY_PATCH
+		addhistory(text);
+		#endif // NAVHISTORY_PATCH
+	}
 }
 
 static void
