@@ -131,12 +131,11 @@ addhistoryitem(struct item *item)
 		snprintf(histitem, histlen, "%s%c%s", item->text, separator, item->text_output);
 		addhistory(histitem);
 		free(histitem);
-	} else {
-		addhistory(item->text);
+		return;
 	}
-	#else
-	addhistory(item->text);
 	#endif // SEPARATOR_PATCH
+
+	addhistory(item->text);
 }
 
 void
@@ -178,8 +177,7 @@ togglehistoryitems(void)
 	for (i = 0; i < histsz; i++) {
 		items[i].text = strdup(history[i]);
 		#if SEPARATOR_PATCH
-		if (separator && (p = separator_greedy ?
-			strrchr(items[i].text, separator) : strchr(items[i].text, separator))) {
+		if (separator && (p = sepchr(items[i].text, separator)) != NULL) {
 			*p = '\0';
 			items[i].text_output = ++p;
 		} else {

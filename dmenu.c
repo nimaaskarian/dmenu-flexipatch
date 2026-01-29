@@ -113,7 +113,7 @@ static char pipeout[8] = " | dmenu";
 static char *embed;
 #if SEPARATOR_PATCH
 static char separator;
-static int separator_greedy;
+static char * (*sepchr)(const char *, int);
 static int separator_reverse;
 #endif // SEPARATOR_PATCH
 static int bh, mw, mh;
@@ -205,6 +205,9 @@ static size_t nextrune(int inc);
 static void movewordedge(int dir);
 static void keypress(XKeyEvent *ev);
 static void paste(void);
+static void printitem(struct item *item);
+static void printtext(char *text);
+static void printcurrent(unsigned int state);
 #if ALPHA_PATCH
 static void xinitvisual(void);
 #endif // ALPHA_PATCH
@@ -983,7 +986,7 @@ match(void)
 
 	#if INSTANT_PATCH
 	if (instant && matches && matches==matchend && !lsubstr) {
-		puts(matches->text);
+		printitem(matches);
 		cleanup();
 		exit(0);
 	}
@@ -1344,85 +1347,11 @@ insert:
 			break;
 		#endif // RESTRICT_RETURN_PATCH
 		#if !MULTI_SELECTION_PATCH
-		#if PIPEOUT_PATCH
-		#if PRINTINPUTTEXT_PATCH
-		if (sel && (
-			(use_text_input && (ev->state & ShiftMask)) ||
-			(!use_text_input && !(ev->state & ShiftMask))
-		))
-		#else
-		if (sel && !(ev->state & ShiftMask))
-		#endif // PRINTINPUTTEXT_PATCH
-		{
-			if (sel->text[0] == startpipe[0]) {
-				strncpy(sel->text + strlen(sel->text),pipeout,8);
-				puts(sel->text+1);
-			}
-			#if PRINTINDEX_PATCH
-			if (print_index)
-				printf("%d\n", sel->index);
-			else
-			#if SEPARATOR_PATCH
-				puts(sel->text_output);
-			#else
-				puts(sel->text);
-			#endif // SEPARATOR_PATCH
-			#elif SEPARATOR_PATCH
-			puts(sel->text_output);
-			#else
-			puts(sel->text);
-			#endif // PRINTINDEX_PATCH | SEPARATOR_PATCH
-		} else {
-			if (text[0] == startpipe[0]) {
-				strncpy(text + strlen(text),pipeout,8);
-				puts(text+1);
-			}
-			puts(text);
-		}
-		#elif PRINTINPUTTEXT_PATCH
-		if (use_text_input) {
-			#if SEPARATOR_PATCH
-			puts((sel && (ev->state & ShiftMask)) ? sel->text_output : text);
-			#else
-			puts((sel && (ev->state & ShiftMask)) ? sel->text : text);
-			#endif // SEPARATOR_PATCH
-		#if PRINTINDEX_PATCH
-		} else if (print_index) {
-			printf("%d\n", (sel && !(ev->state & ShiftMask)) ? sel->index : -1);
-		#endif // PRINTINDEX_PATCH
-		} else {
-			#if SEPARATOR_PATCH
-			puts((sel && !(ev->state & ShiftMask)) ? sel->text_output : text);
-			#else
-			puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
-			#endif // SEPARATOR_PATCH
-		}
-		#elif PRINTINDEX_PATCH
-		if (print_index) {
-			printf("%d\n", (sel && !(ev->state & ShiftMask)) ? sel->index : -1);
-		} else {
-			#if SEPARATOR_PATCH
-			puts((sel && !(ev->state & ShiftMask)) ? sel->text_output : text);
-			#else
-			puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
-			#endif // SEPARATOR_PATCH
-		}
-		#elif SEPARATOR_PATCH
-		puts((sel && !(ev->state & ShiftMask)) ? sel->text_output : text);
-		#else
-		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
-		#endif // PIPEOUT_PATCH | PRINTINPUTTEXT_PATCH | PRINTINDEX_PATCH
+		printcurrent(ev->state);
 		#endif // MULTI_SELECTION_PATCH
-		#if NAVHISTORY_PATCH && !MULTI_SELECTION_PATCH
-		if (ev->state & ShiftMask || !sel) {
-			addhistory(text);
-		} else {
-			addhistoryitem(sel);
-		}
-		#endif // NAVHISTORY_PATCH
 		if (!(ev->state & ControlMask)) {
 			#if MULTI_SELECTION_PATCH
-			printsel(ev->state);
+			printselected(ev->state);
 			#endif // MULTI_SELECTION_PATCH
 			cleanup();
 			exit(0);
@@ -1532,6 +1461,74 @@ paste(void)
 	drawmenu();
 }
 
+static void
+printitem(struct item *item)
+{
+	if (!item)
+		return;
+
+	#if NAVHISTORY_PATCH
+	addhistoryitem(item);
+	#endif // NAVHISTORY_PATCH
+
+	#if PIPEOUT_PATCH
+	if (item->text[0] == startpipe[0]) {
+		strncpy(item->text + strlen(item->text),pipeout,8);
+		puts(item->text+1);
+		return;
+	}
+	#endif // PIPEOUT_PATCH
+
+	#if PRINTINDEX_PATCH
+	if (print_index) {
+		printf("%d\n", item->index);
+		return;
+	}
+	#endif // PRINTINDEX_PATCH
+
+	#if SEPARATOR_PATCH
+	puts(item->text_output);
+	#else
+	puts(item->text);
+	#endif // SEPARATOR_PATCH
+}
+
+static void
+printtext(char *text)
+{
+	if (!text || !strlen(text))
+		return;
+
+	#if NAVHISTORY_PATCH
+	addhistory(text);
+	#endif // NAVHISTORY_PATCH
+
+	#if PIPEOUT_PATCH
+	if (text[0] == startpipe[0]) {
+		strncpy(text + strlen(text),pipeout,8);
+		puts(text+1);
+		return;
+	}
+	#endif // PIPEOUT_PATCH
+
+	puts(text);
+}
+
+static void
+printcurrent(unsigned int state)
+{
+	#if PRINTINPUTTEXT_PATCH
+	if (sel && (use_text_input == !!(state & ShiftMask)))
+	#else
+	if (sel && !(state & ShiftMask))
+	#endif // PRINTINPUTTEXT_PATCH
+	{
+		printitem(sel);
+	} else {
+		printtext(text);
+	}
+}
+
 #if ALPHA_PATCH
 static void
 xinitvisual(void)
@@ -1605,8 +1602,7 @@ readstdin(void)
 		if (!(items[i].text = strdup(line)))
 			die("strdup:");
 		#if SEPARATOR_PATCH
-		if (separator && (p = separator_greedy ?
-			strrchr(items[i].text, separator) : strchr(items[i].text, separator))) {
+		if (separator && (p = sepchr(items[i].text, separator)) != NULL) {
 			*p = '\0';
 			items[i].text_output = ++p;
 		} else {
@@ -2320,8 +2316,15 @@ main(int argc, char *argv[])
 			embed = argv[++i];
 		#endif // XRESOURCES_PATCH
 		#if SEPARATOR_PATCH
-		else if (!strcmp(argv[i], "-d") || /* field separator */
-				(separator_greedy = !strcmp(argv[i], "-D"))) {
+		else if (!strcmp(argv[i], "-d"))   /* field separator */
+		{
+			sepchr = strchr;
+			separator = argv[++i][0];
+			separator_reverse = argv[i][1] == '|';
+		}
+		else if (!strcmp(argv[i], "-D")) /* greedy field separator */
+		{
+			sepchr = strrchr;
 			separator = argv[++i][0];
 			separator_reverse = argv[i][1] == '|';
 		}
