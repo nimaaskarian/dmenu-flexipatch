@@ -156,7 +156,7 @@ void
 togglehistoryitems(void)
 {
 	int i;
-	#if SEPARATOR_PATCH
+	#if SEPARATOR_PATCH || TSV_PATCH
 	char *p;
 	#endif // SEPARATOR_PATCH
 
@@ -183,6 +183,10 @@ togglehistoryitems(void)
 		} else {
 			items[i].text_output = items[i].text;
 		}
+		#elif TSV_PATCH
+		items[i].stext = strdup(items[i].text);
+		if ((p = strchr(items[i].stext, '\t')))
+			*p = '\0';
 		#endif // SEPARATOR_PATCH
 	}
 }
