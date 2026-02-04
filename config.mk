@@ -12,10 +12,6 @@ X11LIB = /usr/X11R6/lib
 XINERAMALIBS  = -lXinerama
 XINERAMAFLAGS = -DXINERAMA
 
-# Uncomment for bidi patch / BIDI_PATCH
-#BIDILIBS = `pkg-config --libs fribidi`
-#BIDIINC = `pkg-config --cflags fribidi`
-
 # freetype
 FREETYPELIBS = -lfontconfig -lXft
 FREETYPEINC = /usr/include/freetype2

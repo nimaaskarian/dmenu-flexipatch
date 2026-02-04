@@ -379,10 +379,13 @@
  */
 #define VI_MODE_PATCH 0
 
-/* Depends on VI_MODE_PATCH, some improvements on the vi mode patch. Adds a
- * required number argument after -vi option, 0 means disabled vi by default,
- * non zero number means enabled vi by default; allowing you to set the starting
- * mode in the runtime.
+/* This patch adds an optional value to the -vi command line option introduced by the
+ * vi mode patch.
+ *
+ * With this we have the following command line options:
+ *   -vi   - enable vi mode, with start_mode setting determining insert or normal mode
+ *   -vi 0 - enable vi mode starting in insert mode
+ *   -vi 1 - enable vi mode starting in normal mode
  *
  * This patch is made by https://github.com/nimaaskarian
  */
